@@ -17,6 +17,19 @@ export function hasConsented(): boolean {
   return localStorage.getItem(CONSENT_KEY) === "true";
 }
 
+export async function checkConsentFromDb(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("consent_accepted")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (data?.consent_accepted) {
+    localStorage.setItem(CONSENT_KEY, "true");
+    return true;
+  }
+  return false;
+}
+
 export default function ConsentPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +70,8 @@ export default function ConsentPage() {
           age: age ? parseInt(age, 10) : null,
           city: city.trim() || null,
           country: country.trim() || null,
+          consent_accepted: true,
+          consent_accepted_at: new Date().toISOString(),
         })
         .eq("user_id", user!.id);
 

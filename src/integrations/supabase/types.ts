@@ -103,6 +103,8 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           city: string | null
+          consent_accepted: boolean
+          consent_accepted_at: string | null
           country: string | null
           created_at: string
           email: string | null
@@ -115,6 +117,8 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           city?: string | null
+          consent_accepted?: boolean
+          consent_accepted_at?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
@@ -127,6 +131,8 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           city?: string | null
+          consent_accepted?: boolean
+          consent_accepted_at?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
