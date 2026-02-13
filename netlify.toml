@@ -2,11 +2,14 @@
   publish = "dist"
   command = "npm run build"
 
+# OAuth route - must come before catch-all
 [[redirects]]
   from = "/~oauth/*"
   to = "/index.html"
   status = 200
+  force = true
 
+# Catch-all for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
