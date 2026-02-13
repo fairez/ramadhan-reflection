@@ -14,6 +14,7 @@ import TadabburPage from "./pages/TadabburPage";
 import QuranJournalPage from "./pages/QuranJournalPage";
 import ItikafPage from "./pages/ItikafPage";
 import DoaPage from "./pages/DoaPage";
+import ConsentPage from "./pages/ConsentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/consent" element={<ProtectedRoute><ConsentPage /></ProtectedRoute>} />
             <Route path="/intro" element={<ProtectedRoute><IntroPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/letter" element={<ProtectedRoute><LetterPage /></ProtectedRoute>} />
