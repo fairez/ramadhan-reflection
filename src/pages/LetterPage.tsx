@@ -76,12 +76,14 @@ export default function LetterPage() {
               value={title}
               onChange={(e) => handleChange(e.target.value, content)}
               placeholder="Judul surat (opsional)"
+              maxLength={500}
               className="w-full text-xl font-serif bg-transparent border-none outline-none placeholder:text-muted-foreground/50 text-foreground"
             />
             <textarea
               value={content}
               onChange={(e) => handleChange(title, e.target.value)}
               placeholder="Tulis suratmu di sini…&#10;&#10;Dear self, di Ramadhan tahun ini aku ingin…"
+              maxLength={20000}
               className="w-full min-h-[400px] bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-relaxed"
             />
           </div>
