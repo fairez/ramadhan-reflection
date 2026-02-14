@@ -19,6 +19,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    // Update consentChecked when location changes and localStorage shows consent
+    const hasConsent = hasConsented();
+    if (hasConsent && !consentChecked) {
+      setConsentChecked(true);
+      setCheckingConsent(false);
+    }
+  }, [location.pathname, consentChecked]);
+
   if (loading || checkingConsent) {
     return (
       <div className="flex min-h-screen items-center justify-center gradient-hero">
