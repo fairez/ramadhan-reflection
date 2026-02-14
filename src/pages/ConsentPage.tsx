@@ -78,6 +78,8 @@ export default function ConsentPage() {
       if (error) throw error;
 
       localStorage.setItem(CONSENT_KEY, "true");
+      // Dispatch custom event to notify ProtectedRoute of consent update
+      window.dispatchEvent(new Event("consentUpdated"));
       navigate("/dashboard", { replace: true });
     } catch {
       toast({ title: "Gagal menyimpan", description: "Terjadi kesalahan, coba lagi.", variant: "destructive" });
