@@ -1,0 +1,46 @@
+{
+  "easy": [
+    "Puasa",
+    "Tarawih",
+    "Sahur",
+    "Tilawah",
+    "Tadabbur",
+    "Sholat Dhuha",
+    "Almatsurat Pagi",
+    "Infaq Shubuh"
+  ],
+  "medium": [
+    "Tahajjud",
+    "Sahur",
+    "Istighfar sebelum Shubuh",
+    "Infaq Shubuh",
+    "Almatsurat Pagi",
+    "Ziyadah",
+    "Sholat Dhuha",
+    "Tadabbur",
+    "Murojaah",
+    "Almatsurat Petang",
+    "Puasa",
+    "Tarawih",
+    "Tilawah",
+    "Kajian/Majelis Ilmu"
+  ],
+  "on_fire": [
+    "Tahajjud",
+    "Sahur",
+    "Istighfar sebelum Shubuh",
+    "Infaq Shubuh",
+    "Almatsurat Pagi",
+    "Ziyadah",
+    "Sholat Dhuha",
+    "Tadabbur",
+    "Murojaah",
+    "Almatsurat Petang",
+    "Puasa",
+    "Tarawih",
+    "Ziyadah (2)",
+    "Tilawah",
+    "Kajian/Majelis Ilmu",
+    "NgabubuRUN"
+  ]
+}
