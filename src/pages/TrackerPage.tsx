@@ -4,9 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Flame, Sparkles, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import trackerHabitsData from "@/data/tracker-habits.json";
+
+type DifficultyLevel = 'easy' | 'medium' | 'on_fire';
+type TrackerHabitsData = {
+  [K in DifficultyLevel]: string[];
+};
 
 interface Habit {
   id: string;
@@ -26,11 +33,39 @@ export default function TrackerPage() {
   const [checks, setChecks] = useState<CheckMap>({});
   const [loading, setLoading] = useState(true);
   const [newHabit, setNewHabit] = useState("");
+  const [difficultyLevel, setDifficultyLevel] = useState<string | null>(null);
+  const [checkingDifficulty, setCheckingDifficulty] = useState(true);
+  const [selectingDifficulty, setSelectingDifficulty] = useState(false);
+  const [pendingDifficulty, setPendingDifficulty] = useState<'easy' | 'medium' | 'on_fire' | null>(null);
+  const [pendingHabits, setPendingHabits] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
-    loadData();
+    checkIfHabitsExist();
   }, [user]);
+
+  async function checkIfHabitsExist() {
+    if (!user) return;
+    
+    // Check if user already has habits (means they've selected difficulty before)
+    const { data: existingHabits } = await supabase
+      .from("tracker_habits")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1);
+    
+    if (existingHabits && existingHabits.length > 0) {
+      // User has habits, so difficulty was already selected
+      setDifficultyLevel("selected"); // Just a flag, not the actual level
+      loadData();
+    } else {
+      // No habits yet, show difficulty selection
+      setDifficultyLevel(null);
+      setLoading(false);
+    }
+    setCheckingDifficulty(false);
+  }
 
   async function loadData() {
     const userId = user!.id;
@@ -113,6 +148,93 @@ export default function TrackerPage() {
     toast({ title: "Kebiasaan dihapus" });
   }
 
+  function handleDifficultySelect(level: 'easy' | 'medium' | 'on_fire') {
+    // Get habits from JSON file
+    const habitsToShow = (trackerHabitsData as TrackerHabitsData)[level];
+    
+    if (!habitsToShow || habitsToShow.length === 0) {
+      toast({ 
+        title: "Error", 
+        description: `Tidak ada kebiasaan untuk level ${level}`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Show confirmation screen with habits list
+    setPendingDifficulty(level);
+    setPendingHabits(habitsToShow);
+  }
+
+  function handleConfirmDifficulty() {
+    if (!pendingDifficulty || !user) return;
+    insertHabits(pendingDifficulty);
+  }
+
+  function handleCancelConfirmation() {
+    setPendingDifficulty(null);
+    setPendingHabits([]);
+  }
+
+  async function insertHabits(level: 'easy' | 'medium' | 'on_fire') {
+    if (!user) return;
+    
+    setSelectingDifficulty(true);
+    try {
+      // Check if user already has habits (prevent re-seeding)
+      const { data: existingHabits } = await supabase
+        .from("tracker_habits")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (existingHabits && existingHabits.length > 0) {
+        throw new Error("Anda sudah memiliki kebiasaan. Tidak dapat mengatur ulang target.");
+      }
+
+      // Get habits from JSON file
+      const habitsToInsert = (trackerHabitsData as TrackerHabitsData)[level];
+      
+      if (!habitsToInsert || habitsToInsert.length === 0) {
+        throw new Error(`Tidak ada kebiasaan untuk level ${level}`);
+      }
+
+      // Insert habits into database
+      const habitsData = habitsToInsert.map((habit, index) => ({
+        user_id: user.id,
+        name: habit,
+        sort_order: index + 1,
+        is_active: true
+      }));
+
+      const { error: insertError } = await supabase
+        .from("tracker_habits")
+        .insert(habitsData);
+
+      if (insertError) throw insertError;
+
+      setDifficultyLevel("selected");
+      setPendingDifficulty(null);
+      setPendingHabits([]);
+      toast({ 
+        title: "Target berhasil diset!", 
+        description: `Level ${level === 'easy' ? 'Easy' : level === 'medium' ? 'Medium' : 'On Fire!'} telah dipilih.` 
+      });
+      
+      // Reload data to show the new habits
+      await loadData();
+    } catch (error: any) {
+      toast({ 
+        title: "Gagal menyimpan", 
+        description: error.message || "Terjadi kesalahan, coba lagi.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSelectingDifficulty(false);
+    }
+  }
+
   function renderGrid(days: number[]) {
     return (
       <div className="overflow-x-auto">
@@ -165,6 +287,172 @@ export default function TrackerPage() {
 
   const days1 = Array.from({ length: 15 }, (_, i) => i + 1);
   const days2 = Array.from({ length: 15 }, (_, i) => i + 16);
+
+  // Show difficulty selection if not selected yet
+  if (checkingDifficulty) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-muted-foreground">Memuat...</div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Show confirmation screen if difficulty is selected but not confirmed
+  if (pendingDifficulty && pendingHabits.length > 0) {
+    const difficultyLabels = {
+      easy: 'Easy',
+      medium: 'Medium',
+      on_fire: 'On Fire!'
+    };
+    const difficultyIcons = {
+      easy: Sparkles,
+      medium: Target,
+      on_fire: Flame
+    };
+    const difficultyColors = {
+      easy: 'text-green-500',
+      medium: 'text-blue-500',
+      on_fire: 'text-primary'
+    };
+    const Icon = difficultyIcons[pendingDifficulty];
+
+    return (
+      <AppLayout>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div>
+            <h1 className="font-serif text-3xl text-foreground">Konfirmasi Target</h1>
+            <p className="text-muted-foreground text-sm mt-1">Tinjau kebiasaan yang akan ditambahkan</p>
+          </div>
+
+          <Card className="border-2 border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-3 justify-center">
+                <Icon className={`h-6 w-6 ${difficultyColors[pendingDifficulty]}`} />
+                <CardTitle className="text-center">Level {difficultyLabels[pendingDifficulty]}</CardTitle>
+              </div>
+              <CardDescription className="text-center">
+                Berikut adalah daftar kebiasaan yang akan ditambahkan ke tracker kamu
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                {pendingHabits.map((habit, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                      {index + 1}
+                    </div>
+                    <span className="text-foreground">{habit}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleCancelConfirmation}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={selectingDifficulty}
+                >
+                  Kembali
+                </Button>
+                <Button
+                  onClick={handleConfirmDifficulty}
+                  className="flex-1"
+                  disabled={selectingDifficulty}
+                >
+                  {selectingDifficulty ? "Menyimpan..." : "Konfirmasi"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </AppLayout>
+    );
+  }
+
+  if (!difficultyLevel) {
+    return (
+      <AppLayout>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div>
+            <h1 className="font-serif text-3xl text-foreground">Ramadan Tracker</h1>
+            <p className="text-muted-foreground text-sm mt-1">Pilih level targetmu untuk memulai</p>
+          </div>
+
+          <Card className="border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-center">Pilih Level Target</CardTitle>
+              <CardDescription className="text-center">
+                Pilih tingkat kesulitan yang sesuai dengan komitmenmu di bulan Ramadhan ini
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Easy */}
+              <motion.button
+                onClick={() => handleDifficultySelect('easy')}
+                disabled={selectingDifficulty}
+                className="w-full p-6 rounded-xl border-2 border-border hover:border-primary/50 transition-all text-left bg-card hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground">Easy</h3>
+                    <p className="text-sm text-muted-foreground">Perfect for beginners</p>
+                    <p className="text-xs text-muted-foreground mt-1">8 kebiasaan dasar untuk memulai perjalanan Ramadhanmu</p>
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* Medium */}
+              <motion.button
+                onClick={() => handleDifficultySelect('medium')}
+                disabled={selectingDifficulty}
+                className="w-full p-6 rounded-xl border-2 border-border hover:border-primary/50 transition-all text-left bg-card hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Target className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground">Medium</h3>
+                    <p className="text-sm text-muted-foreground">Balanced challenge</p>
+                    <p className="text-xs text-muted-foreground mt-1">14 kebiasaan untuk keseimbangan ibadah yang lebih lengkap</p>
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* On Fire! */}
+              <motion.button
+                onClick={() => handleDifficultySelect('on_fire')}
+                disabled={selectingDifficulty}
+                className="w-full p-6 rounded-xl border-2 border-primary/30 hover:border-primary transition-all text-left bg-primary/5 hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Flame className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground">On Fire!</h3>
+                    <p className="text-sm text-muted-foreground">Maximum commitment</p>
+                    <p className="text-xs text-muted-foreground mt-1">16+ kebiasaan komprehensif untuk Ramadhan yang maksimal</p>
+                  </div>
+                </div>
+              </motion.button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
