@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { hasConsented, checkConsentFromDb } from "@/pages/ConsentPage";
 
+const CONSENT_KEY = "ramadhan_journal_consent";
+
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -23,14 +25,48 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // Listen for localStorage changes to detect consent updates in real-time
   useEffect(() => {
-    // Update consentChecked when location changes and localStorage shows consent
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === CONSENT_KEY) {
+        const hasConsent = hasConsented();
+        setConsentChecked(hasConsent);
+        setCheckingConsent(false);
+      }
+    };
+
+    // Custom event for same-tab localStorage changes
+    const handleConsentUpdate = () => {
+      const hasConsent = hasConsented();
+      setConsentChecked(hasConsent);
+      setCheckingConsent(false);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("consentUpdated", handleConsentUpdate);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("consentUpdated", handleConsentUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Always re-check consent status when pathname changes
     const hasConsent = hasConsented();
+    setConsentChecked(hasConsent);
     if (hasConsent) {
-      setConsentChecked(true);
       setCheckingConsent(false);
     }
-  }, [location.pathname]);
+    // If navigating away from /consent, ensure we check consent status
+    if (location.pathname !== "/consent" && !hasConsent && user) {
+      // Re-check from database if localStorage doesn't have it
+      checkConsentFromDb(user.id).then((accepted) => {
+        setConsentChecked(accepted);
+        setCheckingConsent(false);
+      });
+    }
+  }, [location.pathname, user]);
 
   if (loading || checkingConsent) {
     return (
