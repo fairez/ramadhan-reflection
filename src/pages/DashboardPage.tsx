@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import {
   PenLine, CheckSquare, BookOpen, Moon, Calendar, Heart,
-  TrendingUp, FileText, BookMarked
+  TrendingUp, FileText, BookMarked, Target
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -20,6 +20,7 @@ interface Stats {
 
 const quickTiles = [
   { path: "/tracker", label: "Ramadan Tracker", icon: CheckSquare, color: "bg-primary/10 text-primary" },
+  { path: "/daily-targets", label: "Target Harian", icon: Target, color: "bg-primary/10 text-primary" },
   { path: "/letter", label: "A Letter for Me", icon: PenLine, color: "bg-gold/10 text-gold-dark" },
   { path: "/tadabbur", label: "Time to Tadabbur", icon: BookOpen, color: "bg-teal-light/10 text-teal" },
   { path: "/quran-journal", label: "Qur'an Journaling", icon: Moon, color: "bg-primary/10 text-primary" },

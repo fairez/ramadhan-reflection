@@ -10,6 +10,7 @@ import IntroPage from "./pages/IntroPage";
 import DashboardPage from "./pages/DashboardPage";
 import LetterPage from "./pages/LetterPage";
 import TrackerPage from "./pages/TrackerPage";
+import DailyTargetsPage from "./pages/DailyTargetsPage";
 import TadabburPage from "./pages/TadabburPage";
 import QuranJournalPage from "./pages/QuranJournalPage";
 import ItikafPage from "./pages/ItikafPage";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/letter" element={<ProtectedRoute><LetterPage /></ProtectedRoute>} />
             <Route path="/tracker" element={<ProtectedRoute><TrackerPage /></ProtectedRoute>} />
+            <Route path="/daily-targets" element={<ProtectedRoute><DailyTargetsPage /></ProtectedRoute>} />
             <Route path="/tadabbur" element={<ProtectedRoute><TadabburPage /></ProtectedRoute>} />
             <Route path="/quran-journal" element={<ProtectedRoute><QuranJournalPage /></ProtectedRoute>} />
             <Route path="/itikaf" element={<ProtectedRoute><ItikafPage /></ProtectedRoute>} />
