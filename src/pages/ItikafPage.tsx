@@ -60,11 +60,37 @@ export default function ItikafPage() {
   }
 
   async function removeRow(id: string) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("itikaf_rows")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Entry not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     await supabase.from("itikaf_rows").delete().eq("id", id);
     setRows(rows.filter((r) => r.id !== id));
   }
 
   async function updateRow(id: string, field: keyof ItikafRow, value: string) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("itikaf_rows")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Entry not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     setRows(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
     // Debounce handled at component level with simple timeout
     await supabase.from("itikaf_rows").update({ [field]: value }).eq("id", id);

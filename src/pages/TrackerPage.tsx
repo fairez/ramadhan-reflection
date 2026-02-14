@@ -95,6 +95,19 @@ export default function TrackerPage() {
   }
 
   async function removeHabit(id: string) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("tracker_habits")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Habit not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     await supabase.from("tracker_habits").update({ is_active: false }).eq("id", id);
     setHabits(habits.filter((h) => h.id !== id));
     toast({ title: "Kebiasaan dihapus" });
