@@ -55,12 +55,38 @@ export default function DoaPage() {
   }
 
   async function deleteEntry(id: string) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("doa_entries")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Entry not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     await supabase.from("doa_entries").delete().eq("id", id);
     setEntries(entries.filter((e) => e.id !== id));
     toast({ title: "Do'a dihapus" });
   }
 
   async function togglePin(entry: DoaEntry) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("doa_entries")
+      .select("id")
+      .eq("id", entry.id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Entry not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     const newPinned = !entry.pinned;
     await supabase.from("doa_entries").update({ pinned: newPinned }).eq("id", entry.id);
     setEntries(
@@ -73,6 +99,20 @@ export default function DoaPage() {
   const saveFn = useCallback(
     async (entry: DoaEntry) => {
       if (!user) return;
+      
+      // Verify ownership
+      const { data: existing } = await supabase
+        .from("doa_entries")
+        .select("id")
+        .eq("id", entry.id)
+        .eq("user_id", user.id)
+        .single();
+      
+      if (!existing) {
+        // Silently fail for autosave - don't show error toast to avoid spam
+        return;
+      }
+      
       await supabase.from("doa_entries").update({
         content: entry.content,
         category: entry.category,

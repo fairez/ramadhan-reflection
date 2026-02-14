@@ -55,6 +55,19 @@ export default function QuranJournalPage() {
   }
 
   async function deleteEntry(id: string) {
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("quran_journal_entries")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", user!.id)
+      .single();
+    
+    if (!existing) {
+      toast({ title: "Unauthorized", description: "Entry not found or access denied", variant: "destructive" });
+      return;
+    }
+    
     await supabase.from("quran_journal_entries").delete().eq("id", id);
     setEntries(entries.filter((e) => e.id !== id));
     if (selected?.id === id) setSelected(null);
@@ -64,6 +77,20 @@ export default function QuranJournalPage() {
   const saveFn = useCallback(
     async (entry: Entry) => {
       if (!user) return;
+      
+      // Verify ownership
+      const { data: existing } = await supabase
+        .from("quran_journal_entries")
+        .select("id")
+        .eq("id", entry.id)
+        .eq("user_id", user.id)
+        .single();
+      
+      if (!existing) {
+        // Silently fail for autosave - don't show error toast to avoid spam
+        return;
+      }
+      
       await supabase.from("quran_journal_entries").update({
         title: entry.title,
         content: entry.content,
