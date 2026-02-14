@@ -7,8 +7,8 @@ import { hasConsented, checkConsentFromDb } from "@/pages/ConsentPage";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const [consentChecked, setConsentChecked] = useState(hasConsented());
-  const [checkingConsent, setCheckingConsent] = useState(!hasConsented());
+  const [consentChecked, setConsentChecked] = useState(() => hasConsented());
+  const [checkingConsent, setCheckingConsent] = useState(() => !hasConsented());
 
   useEffect(() => {
     if (user && !hasConsented()) {
@@ -16,8 +16,21 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         setConsentChecked(accepted);
         setCheckingConsent(false);
       });
+    } else if (user && hasConsented()) {
+      // Ensure state is synced if localStorage has consent
+      setConsentChecked(true);
+      setCheckingConsent(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    // Update consentChecked when location changes and localStorage shows consent
+    const hasConsent = hasConsented();
+    if (hasConsent) {
+      setConsentChecked(true);
+      setCheckingConsent(false);
+    }
+  }, [location.pathname]);
 
   if (loading || checkingConsent) {
     return (
