@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import {
   PenLine, CheckSquare, BookOpen, Moon, Calendar, Heart,
-  TrendingUp, FileText, BookMarked, Target
+  TrendingUp, FileText, BookMarked, Target, Settings
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -35,6 +35,9 @@ export default function DashboardPage() {
   });
   const [ramadhanDay, setRamadhanDay] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
+  const [isRamadhanOver, setIsRamadhanOver] = useState<boolean>(false);
+  const [daysUntilRamadhan, setDaysUntilRamadhan] = useState<number | null>(null);
+  const [showEditDate, setShowEditDate] = useState<boolean>(false);
 
   useEffect(() => {
     if (!user) return;
@@ -55,10 +58,30 @@ export default function DashboardPage() {
       setStartDate(settings.ramadhan_start_date);
       const start = new Date(settings.ramadhan_start_date);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      start.setHours(0, 0, 0, 0);
       const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      if (diff >= 1 && diff <= 30) setRamadhanDay(diff);
-      else if (diff > 30) setRamadhanDay(30);
-      else setRamadhanDay(null);
+      if (diff >= 1 && diff <= 30) {
+        // Sedang Ramadhan
+        setRamadhanDay(diff);
+        setIsRamadhanOver(false);
+        setDaysUntilRamadhan(null);
+      } else if (diff > 30) {
+        // Ramadhan sudah lewat
+        setRamadhanDay(null);
+        setIsRamadhanOver(true);
+        setDaysUntilRamadhan(null);
+      } else if (diff <= 0 && diff >= -29) {
+        // Dalam 30 hari sebelum Ramadhan
+        setRamadhanDay(null);
+        setIsRamadhanOver(false);
+        setDaysUntilRamadhan(Math.abs(diff) + 1);
+      } else {
+        // Lebih dari 30 hari sebelum Ramadhan
+        setRamadhanDay(null);
+        setIsRamadhanOver(false);
+        setDaysUntilRamadhan(null);
+      }
     }
 
     // Get tracker stats
@@ -112,15 +135,47 @@ export default function DashboardPage() {
         {/* Header */}
         <div>
           <h1 className="font-serif text-3xl md:text-4xl text-foreground mb-1">{greeting}</h1>
-          <p className="text-muted-foreground">
-            {ramadhanDay
-              ? `Hari ke-${ramadhanDay} Ramadhan`
-              : startDate
-                ? "Ramadhan telah berlalu — teruslah istiqomah!"
-                : "Atur tanggal mulai Ramadhan di pengaturan"}
-          </p>
-          {!startDate && (
-            <SetStartDate userId={user!.id} onSet={(d) => { setStartDate(d); loadData(); }} />
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-muted-foreground">
+              {ramadhanDay
+                ? (
+                  <>
+                    {`Hari ke-${ramadhanDay} Ramadhan`}
+                    <span className="block text-sm mt-0.5 text-primary/80">
+                      Semangat, manfaatkan waktu Ramadhan sebaik-baiknya
+                    </span>
+                  </>
+                )
+                : isRamadhanOver
+                  ? "Ramadhan telah berlalu — teruslah istiqomah!"
+                  : daysUntilRamadhan !== null
+                    ? (
+                      <>
+                        Sedikit lagi Ramadhan
+                        <span className="block text-sm mt-0.5 text-gold/90">
+                          {daysUntilRamadhan} hari lagi menuju Ramadhan 🌙
+                        </span>
+                      </>
+                    )
+                    : "Atur tanggal mulai Ramadhan di pengaturan"}
+            </p>
+            {startDate && (
+              <button
+                onClick={() => setShowEditDate((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-0.5 shrink-0"
+                title="Ubah tanggal mulai Ramadhan"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Ubah tanggal
+              </button>
+            )}
+          </div>
+          {(!startDate || showEditDate) && (
+            <ChangeStartDate
+              userId={user!.id}
+              initialDate={startDate ?? ""}
+              onSet={(d) => { setStartDate(d); setShowEditDate(false); loadData(); }}
+            />
           )}
         </div>
 
@@ -181,8 +236,16 @@ export default function DashboardPage() {
   );
 }
 
-function SetStartDate({ userId, onSet }: { userId: string; onSet: (d: string) => void }) {
-  const [date, setDate] = useState("");
+function ChangeStartDate({
+  userId,
+  initialDate,
+  onSet,
+}: {
+  userId: string;
+  initialDate: string;
+  onSet: (d: string) => void;
+}) {
+  const [date, setDate] = useState(initialDate);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -194,7 +257,7 @@ function SetStartDate({ userId, onSet }: { userId: string; onSet: (d: string) =>
   };
 
   return (
-    <div className="mt-4 flex items-center gap-3 bg-gold/10 p-4 rounded-xl border border-gold/20">
+    <div className="mt-3 flex flex-wrap items-center gap-3 bg-gold/10 p-4 rounded-xl border border-gold/20">
       <label className="text-sm font-medium text-foreground">Tanggal mulai Ramadhan:</label>
       <input
         type="date"
