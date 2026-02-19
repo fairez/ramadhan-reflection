@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { CheckCircle2, Circle, Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Calendar as CalendarIcon, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,7 +78,7 @@ export default function DailyTargetsPage() {
       let calculatedDay: number | null = null;
       if (diff >= 1 && diff <= 30) calculatedDay = diff;
       else if (diff > 30) calculatedDay = 30;
-      
+
       setTodayDay(calculatedDay);
       const dayToUse = calculatedDay || 1;
       setSelectedDay(dayToUse);
@@ -92,9 +93,9 @@ export default function DailyTargetsPage() {
 
   async function loadData() {
     if (selectedDay === null) return;
-    
+
     const userId = user!.id;
-    
+
     // Load active habits
     const { data: h } = await supabase
       .from("tracker_habits")
@@ -122,10 +123,10 @@ export default function DailyTargetsPage() {
 
   async function toggleCheck(habitId: string) {
     if (selectedDay === null) return;
-    
+
     const isChecked = checkedHabits.has(habitId);
     const newCheckedSet = new Set(checkedHabits);
-    
+
     // Optimistic update
     if (isChecked) {
       newCheckedSet.delete(habitId);
@@ -155,6 +156,13 @@ export default function DailyTargetsPage() {
     <AppLayout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <div>
+          <Link
+            to="/tracker"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Ramadan Tracker
+          </Link>
           <h1 className="font-serif text-3xl text-foreground">Target Harian</h1>
           <p className="text-muted-foreground text-sm mt-1">Lacak target harianmu per hari Ramadhan</p>
         </div>
@@ -246,9 +254,8 @@ export default function DailyTargetsPage() {
                       )}
                     </button>
                     <span
-                      className={`flex-1 text-foreground ${
-                        isChecked ? "line-through text-muted-foreground" : ""
-                      }`}
+                      className={`flex-1 text-foreground ${isChecked ? "line-through text-muted-foreground" : ""
+                        }`}
                     >
                       {habit.name}
                     </span>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -46,7 +47,7 @@ export default function TrackerPage() {
 
   async function checkIfHabitsExist() {
     if (!user) return;
-    
+
     // Check if user already has habits (means they've selected difficulty before)
     const { data: existingHabits } = await supabase
       .from("tracker_habits")
@@ -54,7 +55,7 @@ export default function TrackerPage() {
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1);
-    
+
     if (existingHabits && existingHabits.length > 0) {
       // User has habits, so difficulty was already selected
       setDifficultyLevel("selected"); // Just a flag, not the actual level
@@ -137,12 +138,12 @@ export default function TrackerPage() {
       .eq("id", id)
       .eq("user_id", user!.id)
       .single();
-    
+
     if (!existing) {
       toast({ title: "Unauthorized", description: "Habit not found or access denied", variant: "destructive" });
       return;
     }
-    
+
     await supabase.from("tracker_habits").update({ is_active: false }).eq("id", id);
     setHabits(habits.filter((h) => h.id !== id));
     toast({ title: "Kebiasaan dihapus" });
@@ -151,12 +152,12 @@ export default function TrackerPage() {
   function handleDifficultySelect(level: 'easy' | 'medium' | 'on_fire') {
     // Get habits from JSON file
     const habitsToShow = (trackerHabitsData as TrackerHabitsData)[level];
-    
+
     if (!habitsToShow || habitsToShow.length === 0) {
-      toast({ 
-        title: "Error", 
-        description: `Tidak ada kebiasaan untuk level ${level}`, 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: `Tidak ada kebiasaan untuk level ${level}`,
+        variant: "destructive"
       });
       return;
     }
@@ -178,7 +179,7 @@ export default function TrackerPage() {
 
   async function insertHabits(level: 'easy' | 'medium' | 'on_fire') {
     if (!user) return;
-    
+
     setSelectingDifficulty(true);
     try {
       // Check if user already has habits (prevent re-seeding)
@@ -195,7 +196,7 @@ export default function TrackerPage() {
 
       // Get habits from JSON file
       const habitsToInsert = (trackerHabitsData as TrackerHabitsData)[level];
-      
+
       if (!habitsToInsert || habitsToInsert.length === 0) {
         throw new Error(`Tidak ada kebiasaan untuk level ${level}`);
       }
@@ -217,18 +218,18 @@ export default function TrackerPage() {
       setDifficultyLevel("selected");
       setPendingDifficulty(null);
       setPendingHabits([]);
-      toast({ 
-        title: "Target berhasil diset!", 
-        description: `Level ${level === 'easy' ? 'Easy' : level === 'medium' ? 'Medium' : 'On Fire!'} telah dipilih.` 
+      toast({
+        title: "Target berhasil diset!",
+        description: `Level ${level === 'easy' ? 'Easy' : level === 'medium' ? 'Medium' : 'On Fire!'} telah dipilih.`
       });
-      
+
       // Reload data to show the new habits
       await loadData();
     } catch (error: any) {
-      toast({ 
-        title: "Gagal menyimpan", 
-        description: error.message || "Terjadi kesalahan, coba lagi.", 
-        variant: "destructive" 
+      toast({
+        title: "Gagal menyimpan",
+        description: error.message || "Terjadi kesalahan, coba lagi.",
+        variant: "destructive"
       });
     } finally {
       setSelectingDifficulty(false);
@@ -457,9 +458,18 @@ export default function TrackerPage() {
   return (
     <AppLayout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-        <div>
-          <h1 className="font-serif text-3xl text-foreground">Ramadan Tracker</h1>
-          <p className="text-muted-foreground text-sm mt-1">Lacak ibadah harianmu selama 30 hari Ramadhan</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-serif text-3xl text-foreground">Ramadan Tracker</h1>
+            <p className="text-muted-foreground text-sm mt-1">Lacak ibadah harianmu selama 30 hari Ramadhan</p>
+          </div>
+          <Link
+            to="/daily-targets"
+            className="flex items-center gap-1.5 shrink-0 text-sm text-primary hover:text-primary/80 border border-primary/30 hover:border-primary/60 px-3 py-1.5 rounded-lg transition-all mt-1"
+          >
+            <Target className="h-3.5 w-3.5" />
+            Target Harian
+          </Link>
         </div>
 
         {/* Add habit */}

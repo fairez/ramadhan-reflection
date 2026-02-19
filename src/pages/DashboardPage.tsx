@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import {
   PenLine, CheckSquare, BookOpen, Moon, Calendar, Heart,
-  TrendingUp, FileText, BookMarked, Target, Settings
+  TrendingUp, FileText, BookMarked, Target, Settings, Pencil, Check
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -38,6 +38,9 @@ export default function DashboardPage() {
   const [isRamadhanOver, setIsRamadhanOver] = useState<boolean>(false);
   const [daysUntilRamadhan, setDaysUntilRamadhan] = useState<number | null>(null);
   const [showEditDate, setShowEditDate] = useState<boolean>(false);
+  const [sapaanName, setSapaanName] = useState<string | null>(null);
+  const [editingSapaan, setEditingSapaan] = useState(false);
+  const [sapaanInput, setSapaanInput] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +49,16 @@ export default function DashboardPage() {
 
   async function loadData() {
     const userId = user!.id;
+
+    // Load sapaan name from profiles
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const customName = profile?.name || null;
+    setSapaanName(customName);
+    setSapaanInput(customName || "");
 
     // Get settings
     const { data: settings } = await supabase
@@ -125,8 +138,23 @@ export default function DashboardPage() {
     });
   }
 
-  const greeting = user?.user_metadata?.full_name
-    ? `Assalamu'alaikum, ${user.user_metadata.full_name.split(" ")[0]}!`
+  async function saveSapaan() {
+    if (!sapaanInput.trim()) return;
+    await supabase
+      .from("profiles")
+      .upsert({ user_id: user!.id, name: sapaanInput.trim() });
+    setSapaanName(sapaanInput.trim());
+    setEditingSapaan(false);
+  }
+
+  const displayName = sapaanName
+    ? sapaanName
+    : user?.user_metadata?.full_name
+      ? user.user_metadata.full_name.split(" ")[0]
+      : null;
+
+  const greeting = displayName
+    ? `Assalamu'alaikum, ${displayName}!`
     : "Assalamu'alaikum!";
 
   return (
@@ -134,7 +162,34 @@ export default function DashboardPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="font-serif text-3xl md:text-4xl text-foreground mb-1">{greeting}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            {editingSapaan ? (
+              <>
+                <input
+                  autoFocus
+                  value={sapaanInput}
+                  onChange={(e) => setSapaanInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveSapaan(); if (e.key === "Escape") setEditingSapaan(false); }}
+                  placeholder="Nama panggilanmu"
+                  className="font-serif text-3xl md:text-4xl text-foreground bg-transparent border-b-2 border-primary outline-none w-full max-w-xs"
+                />
+                <button onClick={saveSapaan} className="text-primary hover:text-primary/70 transition-colors" title="Simpan">
+                  <Check className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <h1 className="font-serif text-3xl md:text-4xl text-foreground">{greeting}</h1>
+                <button
+                  onClick={() => { setSapaanInput(sapaanName || ""); setEditingSapaan(true); }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Ubah nama sapaan"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
           <div className="flex items-start justify-between gap-2">
             <p className="text-muted-foreground">
               {ramadhanDay
